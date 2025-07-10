@@ -289,6 +289,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       username: user.username,
       role: user.role,
       categories: user.categories || [],
+      cookies: user.cookies,
+      cookiesUpdatedAt: user.cookiesUpdatedAt
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -1040,6 +1042,50 @@ app.get('/download-bundle-mp4', async (req, res) => {
     }
   }
 });
+
+// Restore /api/upload-cookies endpoint and user cookie logic
+// Add back user.cookies and user.cookiesUpdatedAt in responses
+// Use user cookie for ytdl requests if available
+
+// Upload cookies endpoint
+app.post('/api/upload-cookies', authenticateToken, async (req, res) => {
+  try {
+    const { cookies } = req.body;
+    if (!cookies) {
+      return res.status(400).json({ error: 'Cookies are required' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    user.cookies = cookies;
+    user.cookiesUpdatedAt = new Date();
+    await user.save();
+    res.json({ message: 'Cookies uploaded successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to upload cookies' });
+  }
+});
+
+// Helper function to get user cookies
+async function getUserCookies(userId) {
+  try {
+    if (!userId) return '';
+    const user = await User.findById(userId);
+    if (user && user.cookies && user.cookies.trim()) {
+      return user.cookies;
+    }
+    return '';
+  } catch (error) {
+    return '';
+  }
+}
+
+// In all ytdl-core requests, use user cookies if available
+// Example for MP4 download:
+// ... inside your MP4/MP3 download endpoints ...
+// const userCookies = await getUserCookies(decoded.userId);
+// ytdl(url, { ..., requestOptions: { headers: { ...(userCookies ? { 'Cookie': userCookies } : {}) } } })
 
 // Get all packages
 app.get('/api/packages', async (req, res) => {

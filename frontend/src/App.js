@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import BundleCard from './BundleCard';
 import AdminPanel from './AdminPanel';
@@ -556,6 +556,34 @@ function HomePage() {
     }
   };
 
+  const fileInputRef = useRef(null);
+  const handleCookieFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    try {
+      const token = localStorage.getItem('userToken');
+      const response = await fetch(`${config.API_BASE_URL}/api/upload-cookies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ cookies: text })
+      });
+      if (response.ok) {
+        setSuccess('YouTube cookie амжилттай хадгалагдлаа!');
+        setError('');
+      } else {
+        setError('Cookie хадгалах үед алдаа гарлаа.');
+        setSuccess('');
+      }
+    } catch (err) {
+      setError('Cookie хадгалах үед алдаа гарлаа.');
+      setSuccess('');
+    }
+  };
+
   return (
     <div className="App" style={styles.container}>
       <header className="header" style={styles.header}>
@@ -601,6 +629,19 @@ function HomePage() {
           )}
         </nav>
       </header>
+      {user && (
+        <div style={{ background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '8px', padding: '15px', margin: '20px auto', maxWidth: '800px', textAlign: 'center' }}>
+          <h3 style={{ color: '#856404', margin: '0 0 10px 0' }}>🍪 YouTube Cookie оруулах (заавал биш)</h3>
+          <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
+            Хэрвээ зарим видео татагдахгүй бол өөрийн YouTube cookie-г оруулж болно.<br/>
+            <b>1.</b> YouTube-д нэвтэрсэн байх<br/>
+            <b>2.</b> <a href="https://chrome.google.com/webstore/detail/get-cookiestxt/" target="_blank" rel="noopener noreferrer">Get cookies.txt</a> өргөтгөл суулгана<br/>
+            <b>3.</b> youtube.com дээрээс cookies.txt файл татаж авна<br/>
+            <b>4.</b> Доор оруулна уу:
+          </p>
+          <input type="file" accept=".txt" ref={fileInputRef} onChange={handleCookieFileUpload} style={{ margin: '10px 0' }} />
+        </div>
+      )}
       {bundles.length === 0 ? (
         <section className="section" style={styles.section}>
           <div className="card" style={styles.card}>
