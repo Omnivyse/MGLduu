@@ -46,7 +46,7 @@ const UserLogin = ({ onLogin }) => {
     <div className="card" style={styles.loginCard}>
       <div style={styles.header}>
         <h1 className="title" style={styles.title}>Нэвтрэх</h1>
-        <p style={styles.subtitle}>Системд нэвтрэх</p>
+        <p style={styles.subtitle}>Утасны дугаараар нэвтрэх</p>
       </div>
 
       <form onSubmit={handleSubmit} style={styles.form}>
@@ -89,13 +89,6 @@ const UserLogin = ({ onLogin }) => {
           {loading ? 'Түр хүлээнэ үү...' : 'Нэвтрэх'}
         </button>
       </form>
-
-      {/* Remove the footer text */}
-      {/* <div style={styles.footer}>
-        <p style={styles.footerText}>
-          Бүртгэлгүй бол админтай холбогдоно уу
-        </p>
-      </div> */}
     </div>
   );
 };

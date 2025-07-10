@@ -255,25 +255,30 @@ app.post('/api/auth/admin-login', async (req, res) => {
   }
 });
 
-// Update normal login to only allow user role
+// Update normal login to only allow user role and auto-register if not found
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Утасны дугаар болон нууц үг шаардлагатай.' });
     }
-    // Only allow login for existing users with role: 'user'
-    const user = await User.findOne({ username, role: 'user' });
+    // Try to find user by phone number (username)
+    let user = await User.findOne({ username, role: 'user' });
     if (!user) {
-      return res.status(401).json({ error: 'Бүртгэл олдсонгүй. Та эхлээд бүртгүүлнэ үү.' });
+      // Auto-register: create new user
+      user = new User({ username, password, role: 'user', isActive: true });
+      await user.save();
+    } else {
+      // If user exists, check password
+      const isValidPassword = await user.comparePassword(password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Нууц үг буруу байна.' });
+      }
+      if (!user.isActive) {
+        return res.status(401).json({ error: 'Таны бүртгэл идэвхгүй байна.' });
+      }
     }
-    const isValidPassword = await user.comparePassword(password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Нууц үг буруу байна.' });
-    }
-    if (!user.isActive) {
-      return res.status(401).json({ error: 'Таны бүртгэл идэвхгүй байна.' });
-    }
+    // Generate token and respond
     const token = jwt.sign(
       { userId: user._id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
