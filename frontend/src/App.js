@@ -4,6 +4,7 @@ import BundleCard from './BundleCard';
 import AdminPanel from './AdminPanel';
 import Login from './Login';
 import UserLogin from './UserLogin';
+import config from './config';
 import './App.css';
 
 function HomePage() {
@@ -101,7 +102,7 @@ function HomePage() {
   const checkCookieStatus = async () => {
     try {
       const token = localStorage.getItem('userToken');
-      const response = await fetch('http://localhost:4000/api/auth/me', {
+      const response = await fetch(`${config.API_BASE_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -129,7 +130,7 @@ function HomePage() {
       }
       
       const token = localStorage.getItem('userToken');
-      const response = await fetch('http://localhost:4000/api/upload-cookies', {
+      const response = await fetch(`${config.API_BASE_URL}/api/upload-cookies`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +191,7 @@ function HomePage() {
         const cookies = extractYouTubeCookies();
         if (cookies) {
           try {
-            const response = await fetch('http://localhost:4000/api/upload-cookies', {
+            const response = await fetch(`${config.API_BASE_URL}/api/upload-cookies`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -216,7 +217,7 @@ function HomePage() {
 
   const fetchBundles = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/bundles');
+      const response = await fetch(`${config.API_BASE_URL}/api/bundles`);
       if (!response.ok) {
         setBundles([]);
         return;
@@ -272,7 +273,7 @@ function HomePage() {
     // --- SSE progress listener ---
     let eventSource;
     try {
-      eventSource = new window.EventSource(`http://localhost:4000/api/bundle-progress/${bundleId}?type=mp3`);
+      eventSource = new window.EventSource(`${config.API_BASE_URL}/api/bundle-progress/${bundleId}?type=mp3`);
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -294,7 +295,7 @@ function HomePage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 900000);
       const token = localStorage.getItem('userToken');
-      const response = await fetch(`http://localhost:4000/download-bundle-mp3/${bundleId}`, {
+      const response = await fetch(`${config.API_BASE_URL}/download-bundle-mp3/${bundleId}`, {
         signal: controller.signal,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -353,7 +354,7 @@ function HomePage() {
     // --- SSE progress listener ---
     let eventSource;
     try {
-      eventSource = new window.EventSource(`http://localhost:4000/api/bundle-progress/${bundleId}?type=mp4`);
+      eventSource = new window.EventSource(`${config.API_BASE_URL}/api/bundle-progress/${bundleId}?type=mp4`);
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -376,7 +377,7 @@ function HomePage() {
       const timeoutId = setTimeout(() => controller.abort(), 900000);
 
       const token = localStorage.getItem('userToken');
-      const response = await fetch(`http://localhost:4000/download-bundle-mp4/${bundleId}`, {
+      const response = await fetch(`${config.API_BASE_URL}/download-bundle-mp4/${bundleId}`, {
         signal: controller.signal,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -503,7 +504,7 @@ function HomePage() {
       const token = localStorage.getItem('userToken');
       if (!token) return;
 
-      const response = await fetch('http://localhost:4000/api/auth/me', {
+      const response = await fetch(`${config.API_BASE_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -741,7 +742,7 @@ function BuyPage() {
 
   const fetchPackages = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/packages');
+      const res = await fetch(`${config.API_BASE_URL}/api/packages`);
       const data = await res.json();
       setPackages(data);
     } catch (e) {
@@ -768,7 +769,7 @@ function BuyPage() {
   const handleSave = async (pkg) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:4000/api/packages/${pkg._id}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/packages/${pkg._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -798,7 +799,7 @@ function BuyPage() {
     if (!user || !selectedPackage) return;
 
     try {
-      const response = await fetch('http://localhost:4000/api/orders', {
+      const response = await fetch(`${config.API_BASE_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

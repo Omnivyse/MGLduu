@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import config from './config';
 
 const AdminPanel = () => {
   const [bundles, setBundles] = useState([]);
@@ -70,7 +71,7 @@ const AdminPanel = () => {
   const fetchBundles = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:4000/api/song-bundle/all', {
+      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle/all`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -91,7 +92,7 @@ const AdminPanel = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:4000/api/admin/stats', {
+      const response = await fetch(`${config.API_BASE_URL}/api/admin/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -112,7 +113,7 @@ const AdminPanel = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:4000/api/admin/users', {
+      const response = await fetch(`${config.API_BASE_URL}/api/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -129,7 +130,7 @@ const AdminPanel = () => {
   // Fetch packages for price editing
   const fetchPackages = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/packages');
+      const res = await fetch(`${config.API_BASE_URL}/api/packages`);
       const data = await res.json();
       setPackages(data);
     } catch (e) {
@@ -141,7 +142,7 @@ const AdminPanel = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:4000/api/orders', {
+      const response = await fetch(`${config.API_BASE_URL}/api/orders`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -158,7 +159,7 @@ const AdminPanel = () => {
   // Fetch categories for admin panel
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/categories');
+      const response = await fetch(`${config.API_BASE_URL}/api/categories`);
       if (response.ok) {
         const data = await response.json();
         setCategories(data);
@@ -185,7 +186,7 @@ const AdminPanel = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:4000/api/song-bundle/${bundleId}`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle/${bundleId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -278,7 +279,7 @@ const AdminPanel = () => {
         category: newBundle.category
       };
 
-      const response = await fetch('http://localhost:4000/api/song-bundle', {
+      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -377,7 +378,7 @@ const AdminPanel = () => {
         piece: parseInt(editBundle.piece) || 0,
         category: editBundle.category
       };
-      const response = await fetch(`http://localhost:4000/api/song-bundle/${editBundle._id}`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle/${editBundle._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -407,7 +408,7 @@ const AdminPanel = () => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:4000/api/admin/users/${userId}`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -433,7 +434,7 @@ const AdminPanel = () => {
   const handleSave = async (pkg) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:4000/api/packages/${pkg._id}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/packages/${pkg._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -456,7 +457,7 @@ const AdminPanel = () => {
   const handleAddPrice = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:4000/api/packages', {
+      const res = await fetch(`${config.API_BASE_URL}/api/packages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -483,7 +484,7 @@ const AdminPanel = () => {
     if (!window.confirm('Та энэ үнийн дүнг устгахдаа итгэлтэй байна уу?')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:4000/api/packages/${pkg._id}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/packages/${pkg._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -517,7 +518,7 @@ const AdminPanel = () => {
     }
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:4000/api/categories', {
+      const res = await fetch(`${config.API_BASE_URL}/api/categories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -554,7 +555,7 @@ const AdminPanel = () => {
   const handleSaveCategory = async (category) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:4000/api/categories/${category._id}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/categories/${category._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -582,7 +583,7 @@ const AdminPanel = () => {
     if (!window.confirm('Та энэ категорийг устгахдаа итгэлтэй байна уу?')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:4000/api/categories/${category._id}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/categories/${category._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -625,7 +626,7 @@ const AdminPanel = () => {
       
       console.log('Request body:', requestBody);
       
-      const res = await fetch(`http://localhost:4000/api/orders/${orderId}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/orders/${orderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -674,7 +675,7 @@ const AdminPanel = () => {
       
       console.log('New categories array:', newCategories);
       
-      const res = await fetch(`http://localhost:4000/api/orders/${orderId}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/orders/${orderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -705,7 +706,7 @@ const AdminPanel = () => {
     if (!window.confirm('Та энэ захиалгыг устгахдаа итгэлтэй байна уу?')) return;
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:4000/api/orders/${orderId}`, {
+      const res = await fetch(`${config.API_BASE_URL}/api/orders/${orderId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
