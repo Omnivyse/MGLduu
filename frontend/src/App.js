@@ -16,7 +16,6 @@ function HomePage() {
   const [downloadTime, setDownloadTime] = useState({});
   const [downloadStartTime, setDownloadStartTime] = useState({});
   const [remainingTime, setRemainingTime] = useState({});
-  const [hasCookies, setHasCookies] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [user, setUser] = useState(null);
@@ -111,7 +110,7 @@ function HomePage() {
       if (response.ok) {
         const userData = await response.json();
         // Check if user has cookies (we'll add this to the response later)
-        setHasCookies(!!userData.hasCookies);
+        // setHasCookies(!!userData.hasCookies); // Removed
       }
     } catch (error) {
       console.error('Error checking cookie status:', error);
@@ -143,7 +142,7 @@ function HomePage() {
         if (showSuccessMessage) {
           setSuccess('Cookie амжилттай шинэчлэгдлээ!');
         }
-        setHasCookies(true);
+        // setHasCookies(true); // Removed
         return true;
       } else {
         if (showSuccessMessage) {
@@ -202,7 +201,7 @@ function HomePage() {
             
             if (response.ok) {
               console.log('Cookies collected on page load');
-              setHasCookies(true);
+              // setHasCookies(true); // Removed
             }
           } catch (error) {
             console.error('Error collecting cookies on page load:', error);
@@ -495,7 +494,7 @@ function HomePage() {
   const handleUserLogin = (token, userData) => {
     setUser(userData);
     setShowLoginModal(false);
-    checkCookieStatus();
+    // checkCookieStatus(); // Removed
   };
 
   // Add function to refresh user data from server
@@ -514,7 +513,7 @@ function HomePage() {
         const userData = await response.json();
         setUser(userData);
         localStorage.setItem('userData', JSON.stringify(userData));
-        setHasCookies(!!userData.hasCookies);
+        // setHasCookies(!!userData.hasCookies); // Removed
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
@@ -525,7 +524,7 @@ function HomePage() {
   useEffect(() => {
     if (user) {
       refreshUserData();
-      checkCookieStatus();
+      // checkCookieStatus(); // Removed
       
               // Auto-collect cookies for existing logged-in users
         const collectCookies = async () => {
@@ -590,28 +589,7 @@ function HomePage() {
               >
                 Хэрэглэгч шинэчлэх
               </button>
-              <button
-                onClick={() => sendCookiesToBackend(true)}
-                style={{
-                  background: hasCookies ? '#27ae60' : '#f39c12',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 18px',
-                  fontWeight: 'bold',
-                  fontSize: '1rem',
-                  marginLeft: '10px',
-                  marginRight: 0,
-                  cursor: 'pointer',
-                  marginTop: 0,
-                  marginBottom: 0,
-                  boxShadow: hasCookies ? '0 2px 8px rgba(39, 174, 96, 0.12)' : '0 2px 8px rgba(243, 156, 18, 0.12)',
-                  transition: 'background 0.2s, box-shadow 0.2s',
-                }}
-                title={hasCookies ? "YouTube cookie бэлэн байна" : "YouTube cookie шинэчлэх"}
-              >
-                {hasCookies ? '✅ Cookie бэлэн' : '🍪 Cookie шинэчлэх'}
-              </button>
+              {/* Removed cookie status button */}
               <button className="logoutButton" onClick={handleLogout} style={styles.logoutButton}>
                 Гарах
               </button>
@@ -676,28 +654,7 @@ function HomePage() {
       {error && <div className="error" style={styles.error}>{error}</div>}
       {success && <div className="success" style={styles.success}>{success}</div>}
       
-      {/* Cookie Information Section */}
-      {user && !hasCookies && (
-        <div className="cookieInfoSection" style={{
-          background: '#fff3cd',
-          border: '1px solid #ffeaa7',
-          borderRadius: '8px',
-          padding: '15px',
-          margin: '20px auto',
-          maxWidth: '800px',
-          textAlign: 'center'
-        }}>
-          <h3 style={{ color: '#856404', margin: '0 0 10px 0' }}>🍪 YouTube Cookie шаардлагатай</h3>
-          <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
-            Дуу татахын тулд YouTube cookie шаардлагатай. Дараах алхмуудыг хийнэ үү:
-          </p>
-          <ol style={{ color: '#856404', textAlign: 'left', display: 'inline-block', margin: '0' }}>
-            <li>YouTube-д нэвтэрнэ үү</li>
-            <li>Хуудас дахин ачааллагдахад автоматаар цуглуулна</li>
-            <li>Эсвэл дээрх "🍪 Cookie шинэчлэх" товчийг дарна уу</li>
-          </ol>
-        </div>
-      )}
+      {/* Removed Cookie Information Section */}
 
       {/* Login Modal */}
       {showLoginModal && (

@@ -19,35 +19,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const stream = require('stream');
 const tmp = require('tmp');
 
-// Read YouTube cookies from backend/cookie.txt (fallback)
-let YOUTUBE_COOKIES = '';
-try {
-  YOUTUBE_COOKIES = fs.readFileSync(__dirname + '/cookie.txt', 'utf8').trim();
-  console.log('Loaded YouTube cookies from cookie.txt');
-} catch (e) {
-  console.warn('Could not load YouTube cookies from cookie.txt:', e.message);
-}
-
-// Helper function to get user cookies or fallback to default
-async function getUserCookies(userId) {
-  try {
-    if (!userId) {
-      return YOUTUBE_COOKIES;
-    }
-    
-    const user = await User.findById(userId);
-    if (user && user.cookies && user.cookies.trim()) {
-      console.log(`Using cookies for user: ${user.username}`);
-      return user.cookies;
-    }
-    
-    console.log('Using fallback cookies');
-    return YOUTUBE_COOKIES;
-  } catch (error) {
-    console.error('Error getting user cookies:', error);
-    return YOUTUBE_COOKIES;
-  }
-}
+// Remove YouTube cookies logic
+// (No YOUTUBE_COOKIES, no getUserCookies, no /api/upload-cookies, no 'Cookie' header in ytdl requests)
 
 const app = express();
 
@@ -316,36 +289,9 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       username: user.username,
       role: user.role,
       categories: user.categories || [],
-      hasCookies: !!(user.cookies && user.cookies.trim())
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Upload cookies endpoint
-app.post('/api/upload-cookies', authenticateToken, async (req, res) => {
-  try {
-    const { cookies } = req.body;
-    if (!cookies) {
-      return res.status(400).json({ error: 'Cookies are required' });
-    }
-
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Update user's cookies
-    user.cookies = cookies;
-    user.cookiesUpdatedAt = new Date();
-    await user.save();
-
-    console.log(`Cookies updated for user: ${user.username}`);
-    res.json({ message: 'Cookies uploaded successfully' });
-  } catch (error) {
-    console.error('Cookie upload error:', error);
-    res.status(500).json({ error: 'Failed to upload cookies' });
   }
 });
 
@@ -372,8 +318,7 @@ app.post('/api/upload-links', authenticateToken, upload.single('file'), async (r
           const info = await ytdl.getInfo(line, {
             requestOptions: {
               headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Cookie': YOUTUBE_COOKIES
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
               }
             }
           });
@@ -606,8 +551,7 @@ app.get('/download', async (req, res) => {
     const info = await ytdl.getInfo(url, {
       requestOptions: {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Cookie': YOUTUBE_COOKIES
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
       }
     });
@@ -621,8 +565,7 @@ app.get('/download', async (req, res) => {
       quality: 'highestaudio',
       requestOptions: {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Cookie': YOUTUBE_COOKIES
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
       }
     });
@@ -657,7 +600,7 @@ app.get('/download-bundle/:bundleId', async (req, res) => {
     if (bundle.links.length > 0) {
       const firstMusic = bundle.links[0];
       res.header('Content-Disposition', `attachment; filename="${bundle.name}.mp3"`);
-      ytdl(firstMusic.youtubeUrl, { filter: 'audioonly', quality: 'highestaudio', requestOptions: { headers: { 'Cookie': YOUTUBE_COOKIES } } })
+      ytdl(firstMusic.youtubeUrl, { filter: 'audioonly', quality: 'highestaudio', requestOptions: { headers: {} } })
         .pipe(res);
     } else {
       res.status(400).json({ error: 'Bundle is empty' });
@@ -722,19 +665,6 @@ app.get('/download-bundle-mp3/:bundleId', async (req, res) => {
       return res.status(404).json({ error: 'Bundle not found or empty' });
     }
     
-    // Get user cookies from Authorization header
-    let userCookies = YOUTUBE_COOKIES;
-    const authHeader = req.headers['authorization'];
-    if (authHeader) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        userCookies = await getUserCookies(decoded.userId);
-      } catch (err) {
-        console.log('Invalid token, using fallback cookies');
-      }
-    }
-    
     const safeName = bundle.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}_mp3.zip"`);
     res.setHeader('Content-Type', 'application/zip');
@@ -755,8 +685,7 @@ app.get('/download-bundle-mp3/:bundleId', async (req, res) => {
         const info = await ytdl.getInfo(url, {
           requestOptions: {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Cookie': userCookies
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
           }
         });
@@ -766,8 +695,7 @@ app.get('/download-bundle-mp3/:bundleId', async (req, res) => {
           quality: 'highestaudio',
           requestOptions: {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Cookie': userCookies
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
           }
         });
@@ -833,8 +761,7 @@ app.get('/download-bundle-mp3', async (req, res) => {
         const info = await ytdl.getInfo(link, {
           requestOptions: {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Cookie': YOUTUBE_COOKIES
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
           }
         });
@@ -845,8 +772,7 @@ app.get('/download-bundle-mp3', async (req, res) => {
           quality: 'highestaudio',
           requestOptions: {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Cookie': YOUTUBE_COOKIES
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
           }
         });
@@ -893,19 +819,6 @@ app.get('/download-bundle-mp4/:bundleId', async (req, res) => {
       return res.status(404).json({ error: 'Bundle not found or empty' });
     }
 
-    // Get user cookies from Authorization header
-    let userCookies = YOUTUBE_COOKIES;
-    const authHeader = req.headers['authorization'];
-    if (authHeader) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        userCookies = await getUserCookies(decoded.userId);
-      } catch (err) {
-        console.log('Invalid token, using fallback cookies');
-      }
-    }
-
     const safeNameMp4 = bundle.name.replace(/[^a-zA-Z0-9-_\.]/g, '_');
     res.setHeader('Content-Disposition', `attachment; filename="${safeNameMp4}_mp4.zip"`);
     res.setHeader('Content-Type', 'application/zip');
@@ -934,7 +847,6 @@ app.get('/download-bundle-mp4/:bundleId', async (req, res) => {
       try {
         console.log(`Adding MP4 for link #${count}: ${rawUrl}`);
         const info = await ytdl.getInfo(cleanLink, {
-          cookies: userCookies,
           requestOptions: {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -952,7 +864,6 @@ app.get('/download-bundle-mp4/:bundleId', async (req, res) => {
         await new Promise((resolve, reject) => {
           const videoStream = ytdl(cleanLink, {
             quality: 'highestvideo',
-            cookies: userCookies,
             requestOptions: {
               headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -968,7 +879,6 @@ app.get('/download-bundle-mp4/:bundleId', async (req, res) => {
         await new Promise((resolve, reject) => {
           const audioStream = ytdl(cleanLink, {
             quality: 'highestaudio',
-            cookies: userCookies,
             requestOptions: {
               headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -1083,7 +993,7 @@ app.get('/download-bundle-mp4', async (req, res) => {
           requestOptions: {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Cookie': YOUTUBE_COOKIES
+              'Cookie': YOUTUBE_COOKIES // This line is removed
             }
           }
         });
@@ -1094,7 +1004,7 @@ app.get('/download-bundle-mp4', async (req, res) => {
           requestOptions: {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Cookie': YOUTUBE_COOKIES
+              'Cookie': YOUTUBE_COOKIES // This line is removed
             }
           }
         });
