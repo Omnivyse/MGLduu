@@ -60,7 +60,13 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: [
+    'https://mg-lduu.vercel.app',
+    'https://mg-lduu-elvns-projects-7828107b.vercel.app'
+  ],
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // Health check endpoint for Railway
