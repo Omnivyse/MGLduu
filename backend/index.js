@@ -124,16 +124,55 @@ app.post('/api/upload-image', upload.single('image'), (req, res) => {
   res.json({ url: `/uploads/${req.file.filename}` });
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mongolian-music', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+// Connect to MongoDB with retry mechanism
+const connectWithRetry = () => {
+  console.log('🔄 Attempting to connect to MongoDB...');
+  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mongolian-music', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    ssl: true,
+    sslValidate: false,
+    retryWrites: true,
+    w: 'majority',
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    bufferMaxEntries: 0,
+    bufferCommands: false,
+    maxPoolSize: 10,
+    minPoolSize: 1,
+    maxIdleTimeMS: 30000,
+    retryReads: true
+  }).catch(err => {
+    console.error('❌ MongoDB connection failed:', err.message);
+    console.log('🔄 Retrying in 5 seconds...');
+    setTimeout(connectWithRetry, 5000);
+  });
+};
+
+connectWithRetry();
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+
+// Enhanced error handling for MongoDB connection
+db.on('error', (error) => {
+  console.error('❌ MongoDB connection error:', error);
+  console.error('Error details:', {
+    name: error.name,
+    message: error.message,
+    code: error.code
+  });
+});
+
+db.on('disconnected', () => {
+  console.log('⚠️ MongoDB disconnected');
+});
+
+db.on('reconnected', () => {
+  console.log('✅ MongoDB reconnected');
+});
+
 db.once('open', () => {
-  console.log('Connected to MongoDB');
+  console.log('✅ Connected to MongoDB successfully');
   createDefaultAdmin();
   // seedDefaultPackages(); // REMOVE THIS LINE to stop auto-creating price bundles
 });

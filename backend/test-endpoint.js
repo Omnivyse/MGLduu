@@ -7,7 +7,15 @@ async function testEndpoint() {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mongolian-music', {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      ssl: true,
+      sslValidate: false,
+      retryWrites: true,
+      w: 'majority',
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      bufferMaxEntries: 0,
+      bufferCommands: false
     });
     
     console.log('Connected to MongoDB');
