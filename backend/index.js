@@ -130,18 +130,14 @@ const connectWithRetry = () => {
   mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mongolian-music', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    ssl: true,
-    sslValidate: false,
-    retryWrites: true,
-    w: 'majority',
     serverSelectionTimeoutMS: 10000,
     socketTimeoutMS: 45000,
-    bufferMaxEntries: 0,
-    bufferCommands: false,
     maxPoolSize: 10,
     minPoolSize: 1,
     maxIdleTimeMS: 30000,
-    retryReads: true
+    retryReads: true,
+    retryWrites: true,
+    w: 'majority'
   }).catch(err => {
     console.error('❌ MongoDB connection failed:', err.message);
     console.log('🔄 Retrying in 5 seconds...');
