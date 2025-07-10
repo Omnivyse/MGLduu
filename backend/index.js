@@ -60,11 +60,12 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://mg-lduu.vercel.app'
+];
 app.use(cors({
-  origin: [
-    'https://mg-lduu.vercel.app',
-    'https://mg-lduu-elvns-projects-7828107b.vercel.app'
-  ],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
