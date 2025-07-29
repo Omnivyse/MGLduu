@@ -13,6 +13,7 @@ const User = require('./models/User');
 const Package = require('./models/Package');
 const Order = require('./models/Order');
 const Category = require('./models/Category');
+const GameCard = require('./models/GameCard');
 require('dotenv').config({ path: './config.env' });
 const archiver = require('archiver');
 const ffmpeg = require('fluent-ffmpeg');
@@ -1303,6 +1304,70 @@ app.get('/api/categories', async (req, res) => {
     res.json(categories);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// Get all game cards
+app.get('/api/game-cards', async (req, res) => {
+  try {
+    const gameCards = await GameCard.find({ isActive: true }).sort({ difficulty: 1 });
+    res.json(gameCards);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch game cards' });
+  }
+});
+
+// Create a new game card (admin only)
+app.post('/api/game-cards', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+    const { name, difficulty, description, color, challenges } = req.body;
+    if (!name || !difficulty || !description) {
+      return res.status(400).json({ error: 'Name, difficulty, and description are required' });
+    }
+    const gameCard = await GameCard.create({ name, difficulty, description, color, challenges });
+    res.json(gameCard);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create game card' });
+  }
+});
+
+// Update a game card (admin only)
+app.put('/api/game-cards/:id', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+    const { name, difficulty, description, color, challenges, isActive } = req.body;
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (difficulty !== undefined) update.difficulty = difficulty;
+    if (description !== undefined) update.description = description;
+    if (color !== undefined) update.color = color;
+    if (challenges !== undefined) update.challenges = challenges;
+    if (isActive !== undefined) update.isActive = isActive;
+    
+    const gameCard = await GameCard.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!gameCard) return res.status(404).json({ error: 'Game card not found' });
+    res.json(gameCard);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update game card' });
+  }
+});
+
+// Delete a game card (admin only)
+app.delete('/api/game-cards/:id', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+    const deleted = await GameCard.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Game card not found' });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete game card' });
   }
 });
 

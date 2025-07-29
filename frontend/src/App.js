@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import BundleCard from './BundleCard';
 import AdminPanel from './AdminPanel';
@@ -8,14 +8,7 @@ import config from './config';
 import './App.css';
 
 function HomePage() {
-  const [bundles, setBundles] = useState([]);
-  const [downloadingMp3, setDownloadingMp3] = useState({});
-  const [downloadingMp4, setDownloadingMp4] = useState({});
-  const [downloadProgress, setDownloadProgress] = useState({});
-  const [downloadPercentage, setDownloadPercentage] = useState({});
-  const [downloadTime, setDownloadTime] = useState({});
-  const [downloadStartTime, setDownloadStartTime] = useState({});
-  const [remainingTime, setRemainingTime] = useState({});
+  const [gameCards, setGameCards] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [user, setUser] = useState(null);
@@ -23,7 +16,7 @@ function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchBundles();
+    fetchGameCards();
     // Check if user is logged in
     const userToken = localStorage.getItem('userToken');
     const userData = localStorage.getItem('userData');
@@ -32,464 +25,39 @@ function HomePage() {
     }
   }, []);
 
-  // Timer to update download time in real-time
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = Date.now();
-      Object.keys(downloadStartTime).forEach(bundleId => {
-        if (downloadingMp3[bundleId] || downloadingMp4[bundleId]) {
-          const elapsed = now - downloadStartTime[bundleId];
-          setDownloadTime(prev => ({ ...prev, [bundleId]: elapsed }));
-          
-          // Calculate remaining time
-          const currentProgress = downloadPercentage[bundleId] || 0;
-          if (currentProgress > 0) {
-            const totalEstimatedTime = (elapsed / currentProgress) * 100;
-            const remaining = Math.max(0, totalEstimatedTime - elapsed);
-            setRemainingTime(prev => ({ ...prev, [bundleId]: remaining }));
-          } else {
-            setRemainingTime(prev => ({ ...prev, [bundleId]: 0 }));
-          }
-        }
-      });
-    }, 1000);
 
-    return () => clearInterval(timer);
-  }, [downloadStartTime, downloadingMp3, downloadingMp4, downloadPercentage]);
 
-  // Helper function to format time
-  const formatTime = (milliseconds) => {
-    if (!milliseconds) return 'Starting...';
-    const seconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
 
-  // Function to extract YouTube cookies from browser
-  const extractYouTubeCookies = () => {
+
+  const fetchGameCards = async () => {
     try {
-      // Filter YouTube-related cookies
-      const youtubeCookies = [];
-      const youtubeDomains = ['.youtube.com', '.google.com', '.googlevideo.com'];
-      
-      // Get cookies from all domains
-      youtubeDomains.forEach(domain => {
-        const domainCookies = document.cookie
-          .split(';')
-          .map(cookie => cookie.trim())
-          .filter(cookie => cookie.includes('='))
-          .map(cookie => {
-            const [name, value] = cookie.split('=');
-            return `${name}=${value}`;
-          })
-          .join('; ');
-        
-        if (domainCookies) {
-          youtubeCookies.push(domainCookies);
-        }
-      });
-      
-      return youtubeCookies.join('; ');
-    } catch (error) {
-      console.error('Error extracting cookies:', error);
-      return '';
-    }
-  };
-  
-  // Function to check if user has cookies
-  const checkCookieStatus = async () => {
-    try {
-      const token = localStorage.getItem('userToken');
-      const response = await fetch(`${config.API_BASE_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const userData = await response.json();
-        // Check if user has cookies (we'll add this to the response later)
-        // setHasCookies(!!userData.hasCookies); // Removed
-      }
-    } catch (error) {
-      console.error('Error checking cookie status:', error);
-    }
-  };
-
-  // Function to send cookies to backend
-  const sendCookiesToBackend = useCallback(async (showSuccessMessage = false) => {
-    try {
-      const cookies = extractYouTubeCookies();
-      if (!cookies) {
-        if (showSuccessMessage) {
-          setError('YouTube cookie олдсонгүй. YouTube-д нэвтэрсэн байгаа эсэхээ шалгана уу.');
-        }
-        return false;
-      }
-      
-      const token = localStorage.getItem('userToken');
-      const response = await fetch(`${config.API_BASE_URL}/api/upload-cookies`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ cookies })
-      });
-      
-      if (response.ok) {
-        if (showSuccessMessage) {
-          setSuccess('Cookie амжилттай шинэчлэгдлээ!');
-        }
-        // setHasCookies(true); // Removed
-        return true;
-      } else {
-        if (showSuccessMessage) {
-          setError('Cookie шинэчлэхэд алдаа гарлаа');
-        }
-        return false;
-      }
-    } catch (error) {
-      console.error('Error sending cookies:', error);
-      if (showSuccessMessage) {
-        setError('Cookie шинэчлэхэд алдаа гарлаа');
-      }
-      return false;
-    }
-  }, []);
-  
-  // Auto-collect cookies when user logs in or visits the page
-  useEffect(() => {
-    if (user) {
-      // Collect cookies immediately when user is logged in
-      const collectCookies = async () => {
-        const success = await sendCookiesToBackend();
-        if (success) {
-          // Don't show success message for automatic collection to avoid spam
-          console.log('YouTube cookie автоматаар цуглууллаа');
-        }
-      };
-      
-      // Try to collect cookies immediately
-      collectCookies();
-      
-      // Also try again after a short delay in case page is still loading
-      const timer = setTimeout(collectCookies, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
-
-  // Auto-collect cookies when page loads (even for non-logged in users)
-  useEffect(() => {
-    const collectCookiesOnPageLoad = async () => {
-      // Only collect if user is logged in
-      const token = localStorage.getItem('userToken');
-      if (token) {
-        const cookies = extractYouTubeCookies();
-        if (cookies) {
-          try {
-            const response = await fetch(`${config.API_BASE_URL}/api/upload-cookies`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ cookies })
-            });
-            
-            if (response.ok) {
-              console.log('Cookies collected on page load');
-              // setHasCookies(true); // Removed
-            }
-          } catch (error) {
-            console.error('Error collecting cookies on page load:', error);
-          }
-        }
-      }
-    };
-    
-    // Try to collect cookies when page loads
-    collectCookiesOnPageLoad();
-  }, []);
-
-  const fetchBundles = async () => {
-    try {
-      const response = await fetch(`${config.API_BASE_URL}/api/bundles`);
+      const response = await fetch(`${config.API_BASE_URL}/api/game-cards`);
       if (!response.ok) {
-        setBundles([]);
+        setGameCards([]);
         return;
       }
       const data = await response.json();
-      setBundles(data);
+      setGameCards(data);
     } catch (err) {
-      console.error('Error fetching bundles:', err);
-      setBundles([]);
+      console.error('Error fetching game cards:', err);
+      setGameCards([]);
     }
   };
 
-  // Function to categorize bundles
-  const categorizeBundles = (bundles) => {
-    const categories = {
-      'Зохиолын дуу': [],
-      'Орчин үеийн дуу': [],
-      'Поп дуу': [],
-      'Бусад': []
-    };
-
-    bundles.forEach(bundle => {
-      const name = bundle.name.toLowerCase();
-      if (name.includes('зохиол') || name.includes('сонгодог') || name.includes('уран зохиол')) {
-        categories['Зохиолын дуу'].push(bundle);
-      } else if (name.includes('орчин') || name.includes('үеийн') || name.includes('современ')) {
-        categories['Орчин үеийн дуу'].push(bundle);
-      } else if (name.includes('поп') || name.includes('pop') || name.includes('эстрад')) {
-        categories['Поп дуу'].push(bundle);
-      } else {
-        categories['Бусад'].push(bundle);
-      }
-    });
-
-    return categories;
-  };
-
-  const handleDownloadMp3 = async (bundleId, bundleName) => {
+  const handlePlayGame = (card) => {
     if (!user) {
       setError('Та нэвтрэх шаардлагатай');
       setShowLoginModal(true);
       return;
     }
-    setDownloadingMp3(prev => ({ ...prev, [bundleId]: true }));
-    setError('');
-    setSuccess('');
-    setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Preparing download...' }));
-    setDownloadPercentage(prev => ({ ...prev, [bundleId]: 0 }));
-    setDownloadTime(prev => ({ ...prev, [bundleId]: 0 }));
-    setRemainingTime(prev => ({ ...prev, [bundleId]: 0 }));
-    setDownloadStartTime(prev => ({ ...prev, [bundleId]: Date.now() }));
-
-    // --- SSE progress listener ---
-    let eventSource;
-    try {
-      eventSource = new window.EventSource(`${config.API_BASE_URL}/api/bundle-progress/${bundleId}?type=mp3`);
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data && typeof data.processed === 'number' && typeof data.total === 'number') {
-            const percent = data.total > 0 ? Math.round((data.processed / data.total) * 100) : 0;
-            setDownloadPercentage(prev => ({ ...prev, [bundleId]: percent }));
-            setDownloadProgress(prev => ({ ...prev, [bundleId]: `${data.processed} / ${data.total} файлыг боловсруулж байна...` }));
-            if (data.done) {
-              setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Creating download link...' }));
-              setDownloadPercentage(prev => ({ ...prev, [bundleId]: 100 }));
-              eventSource.close();
-            }
-          }
-        } catch (e) {}
-      };
-    } catch (e) {}
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 900000);
-      const token = localStorage.getItem('userToken');
-      const response = await fetch(`${config.API_BASE_URL}/download-bundle-mp3/${bundleId}`, {
-        signal: controller.signal,
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
-      }
-      const blob = await response.blob();
-      if (blob.size === 0) {
-        throw new Error('Downloaded file is empty');
-      }
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = `${bundleName}_mp3.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(link.href);
-      setSuccess(`Downloaded ${bundleName} MP3 as ZIP`);
-      setDownloadProgress(prev => ({ ...prev, [bundleId]: '' }));
-      setDownloadPercentage(prev => ({ ...prev, [bundleId]: 0 }));
-      setDownloadTime(prev => ({ ...prev, [bundleId]: Date.now() - downloadStartTime[bundleId] }));
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        setError('Download timed out. Please try again.');
-      } else {
-        setError(`Failed to download MP3: ${err.message}`);
-      }
-    }
-    setDownloadingMp3(prev => ({ ...prev, [bundleId]: false }));
-    setDownloadProgress(prev => ({ ...prev, [bundleId]: '' }));
-    setDownloadPercentage(prev => ({ ...prev, [bundleId]: 0 }));
-    setRemainingTime(prev => ({ ...prev, [bundleId]: 0 }));
-    setDownloadTime(prev => ({ ...prev, [bundleId]: Date.now() - downloadStartTime[bundleId] }));
-    if (eventSource) eventSource.close();
+    // TODO: Implement game logic
+    console.log('Playing game with card:', card);
+    setSuccess(`Starting ${card.name} game!`);
   };
 
-  const handleDownloadMp4 = async (bundleId, bundleName) => {
-    if (!user) {
-      setError('Та нэвтрэх шаардлагатай');
-      setShowLoginModal(true);
-      return;
-    }
-    setDownloadingMp4(prev => ({ ...prev, [bundleId]: true }));
-    setError('');
-    setSuccess('');
-    setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Preparing download...' }));
-    setDownloadPercentage(prev => ({ ...prev, [bundleId]: 0 }));
-    setDownloadTime(prev => ({ ...prev, [bundleId]: 0 }));
-    setRemainingTime(prev => ({ ...prev, [bundleId]: 0 }));
-    setDownloadStartTime(prev => ({ ...prev, [bundleId]: Date.now() }));
 
-    // --- SSE progress listener ---
-    let eventSource;
-    try {
-      eventSource = new window.EventSource(`${config.API_BASE_URL}/api/bundle-progress/${bundleId}?type=mp4`);
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data && typeof data.processed === 'number' && typeof data.total === 'number') {
-            const percent = data.total > 0 ? Math.round((data.processed / data.total) * 100) : 0;
-            setDownloadPercentage(prev => ({ ...prev, [bundleId]: percent }));
-            setDownloadProgress(prev => ({ ...prev, [bundleId]: `${data.processed} / ${data.total} файлыг боловсруулж байна...` }));
-            if (data.done) {
-              setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Creating download link...' }));
-              setDownloadPercentage(prev => ({ ...prev, [bundleId]: 100 }));
-              eventSource.close();
-            }
-          }
-        } catch (e) {}
-      };
-    } catch (e) {}
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 900000);
 
-      const token = localStorage.getItem('userToken');
-      const response = await fetch(`${config.API_BASE_URL}/download-bundle-mp4/${bundleId}`, {
-        signal: controller.signal,
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      clearTimeout(timeoutId);
-
-      // Check if the response is JSON (error)
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Unknown server error');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
-      }
-
-      setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Downloading files...' }));
-
-      // Get content length for progress tracking
-      const contentLength = response.headers.get('content-length');
-      let loaded = 0;
-
-      if (contentLength) {
-        const total = parseInt(contentLength, 10);
-        const reader = response.body.getReader();
-        const chunks = [];
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          chunks.push(value);
-          loaded += value.length;
-          const percentage = Math.round((loaded / total) * 100);
-          setDownloadPercentage(prev => ({ ...prev, [bundleId]: percentage }));
-        }
-
-        const blob = new Blob(chunks);
-        if (blob.size === 0) {
-          throw new Error('Downloaded file is empty');
-        }
-
-        // Check if the blob is a ZIP file
-        if (contentType && !contentType.includes('application/zip')) {
-          throw new Error('Downloaded file is not a ZIP archive');
-        }
-
-        setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Creating download link...' }));
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = `${bundleName}_mp4.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(link.href);
-      } else {
-        // Fallback for when content-length is not available - show animated progress
-        setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Downloading files...' }));
-
-        // Start animated progress
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-          progress += Math.random() * 15;
-          if (progress > 90) progress = 90; // Don't go to 100% until actually done
-          setDownloadPercentage(prev => ({ ...prev, [bundleId]: Math.round(progress) }));
-        }, 500);
-
-        const blob = await response.blob();
-        clearInterval(progressInterval);
-
-        if (blob.size === 0) {
-          throw new Error('Downloaded file is empty');
-        }
-
-        // Check if the blob is a ZIP file
-        if (contentType && !contentType.includes('application/zip')) {
-          throw new Error('Downloaded file is not a ZIP archive');
-        }
-
-        setDownloadProgress(prev => ({ ...prev, [bundleId]: 'Creating download link...' }));
-        setDownloadPercentage(prev => ({ ...prev, [bundleId]: 95 }));
-
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = `${bundleName}_mp4.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(link.href);
-      }
-
-      setSuccess(`Downloaded ${bundleName} MP4 as ZIP`);
-      setDownloadProgress(prev => ({ ...prev, [bundleId]: '' }));
-      setDownloadPercentage(prev => ({ ...prev, [bundleId]: 0 }));
-      setDownloadTime(prev => ({ ...prev, [bundleId]: Date.now() - downloadStartTime[bundleId] }));
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        setError('Download timed out. Please try again.');
-      } else {
-        setError(`Failed to download MP4: ${err.message}`);
-      }
-    }
-    setDownloadingMp4(prev => ({ ...prev, [bundleId]: false }));
-    setDownloadProgress(prev => ({ ...prev, [bundleId]: '' }));
-    setDownloadPercentage(prev => ({ ...prev, [bundleId]: 0 }));
-    setRemainingTime(prev => ({ ...prev, [bundleId]: 0 }));
-    setDownloadTime(prev => ({ ...prev, [bundleId]: Date.now() - downloadStartTime[bundleId] }));
-    if (eventSource) eventSource.close();
-  };
 
   const handleUserLogin = (token, userData) => {
     setUser(userData);
@@ -520,26 +88,7 @@ function HomePage() {
     }
   };
 
-  // Refresh user data and collect cookies when component mounts if user is logged in
-  useEffect(() => {
-    if (user) {
-      refreshUserData();
-      // checkCookieStatus(); // Removed
-      
-              // Auto-collect cookies for existing logged-in users
-        const collectCookies = async () => {
-          const success = await sendCookiesToBackend();
-          if (success) {
-            // Don't show success message for automatic collection to avoid spam
-            console.log('YouTube cookie автоматаар цуглууллаа');
-          }
-        };
-      
-      // Try immediately and after a short delay
-      collectCookies();
-      setTimeout(collectCookies, 1000);
-    }
-  }, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem('userToken');
@@ -556,39 +105,13 @@ function HomePage() {
     }
   };
 
-  const fileInputRef = useRef(null);
-  const handleCookieFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    const text = await file.text();
-    try {
-      const token = localStorage.getItem('userToken');
-      const response = await fetch(`${config.API_BASE_URL}/api/upload-cookies`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ cookies: text })
-      });
-      if (response.ok) {
-        setSuccess('YouTube cookie амжилттай хадгалагдлаа!');
-        setError('');
-      } else {
-        setError('Cookie хадгалах үед алдаа гарлаа.');
-        setSuccess('');
-      }
-    } catch (err) {
-      setError('Cookie хадгалах үед алдаа гарлаа.');
-      setSuccess('');
-    }
-  };
+
 
   return (
     <div className="App" style={styles.container}>
       <header className="header" style={styles.header}>
-        <h1 className="title" style={styles.title}>Монгол Дуу Татагч</h1>
-        <p className="subtitle" style={styles.subtitle}>Mongolian Music Downloader</p>
+        <h1 className="title" style={styles.title}>Хий эсвэл УУ !!!</h1>
+        <p className="subtitle" style={styles.subtitle}>The Ultimate Party Game</p>
         <nav className="nav" style={styles.nav}>
           <button className="homeHeaderButton" style={styles.homeHeaderButton} onClick={() => navigate('/')}>Home</button>
           <button className="buyHeaderButton" style={styles.buyHeaderButton} onClick={handleBuyClick}>Худалдаж авах</button>
@@ -629,69 +152,48 @@ function HomePage() {
           )}
         </nav>
       </header>
-      {user && (
-        <div style={{ background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '8px', padding: '15px', margin: '20px auto', maxWidth: '800px', textAlign: 'center' }}>
-          <h3 style={{ color: '#856404', margin: '0 0 10px 0' }}>🍪 YouTube Cookie оруулах (заавал биш)</h3>
-          <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
-            Хэрвээ зарим видео татагдахгүй бол өөрийн YouTube cookie-г оруулж болно.<br/>
-            <b>1.</b> YouTube-д нэвтэрсэн байх<br/>
-            <b>2.</b> <a href="https://chrome.google.com/webstore/detail/get-cookiestxt/" target="_blank" rel="noopener noreferrer">Get cookies.txt</a> өргөтгөл суулгана<br/>
-            <b>3.</b> youtube.com дээрээс cookies.txt файл татаж авна<br/>
-            <b>4.</b> Доор оруулна уу:
-          </p>
-          <input type="file" accept=".txt" ref={fileInputRef} onChange={handleCookieFileUpload} style={{ margin: '10px 0' }} />
-        </div>
-      )}
-      {bundles.length === 0 ? (
-        <section className="section" style={styles.section}>
-          <div className="card" style={styles.card}>
-            <h2 className="sectionTitle" style={styles.sectionTitle}>Available Music Bundles</h2>
-            <div style={styles.noBundles}>
-              <p>No bundles available. Please create some bundles in the admin panel.</p>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <>
-          {Object.entries(categorizeBundles(bundles)).map(([category, categoryBundles]) => {
-            if (categoryBundles.length === 0) return null;
-            // Sort bundles by name (ascending, natural order)
-            const sortedBundles = [...categoryBundles].sort((a, b) => a.name.localeCompare(b.name, 'mn', { numeric: true }));
-            // Split bundles into chunks of 8
-            const bundleChunks = [];
-            for (let i = 0; i < sortedBundles.length; i += 8) {
-              bundleChunks.push(sortedBundles.slice(i, i + 8));
-            }
-            return bundleChunks.map((chunk, chunkIndex) => (
-              <section key={`${category}-${chunkIndex}`} className="section" style={styles.section}>
-                <div className="card" style={styles.card}>
-                  <h2 className="categoryTitle" style={styles.categoryTitle}>
-                    {category} {bundleChunks.length > 1 ? `(${chunkIndex + 1}/${bundleChunks.length})` : ''}
-                  </h2>
-                  <div className="bundlesRow" style={styles.bundlesRow}>
-                    {chunk.map((bundle) => (
-                      <BundleCard
-                        key={bundle._id}
-                        bundle={bundle}
-                        downloadingMp3={downloadingMp3[bundle._id] || false}
-                        downloadingMp4={downloadingMp4[bundle._id] || false}
-                        downloadProgress={downloadProgress[bundle._id] || ''}
-                        downloadPercentage={downloadPercentage[bundle._id] || 0}
-                        downloadTime={formatTime(downloadTime[bundle._id])}
-                        remainingTime={formatTime(remainingTime[bundle._id])}
-                        onDownloadMp3={() => handleDownloadMp3(bundle._id, bundle.name)}
-                        onDownloadMp4={() => handleDownloadMp4(bundle._id, bundle.name)}
-                        user={user}
-                        onBuyClick={handleBuyClick}
-                      />
-                    ))}
+
+      <section className="section" style={styles.section}>
+        <div className="card" style={styles.card}>
+          <h2 className="sectionTitle" style={styles.sectionTitle}>Choose Your Challenge Level</h2>
+          <div style={styles.bundlesRow}>
+            {gameCards.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#666', fontSize: '1.1rem', gridColumn: '1 / -1' }}>
+                <p>No game cards available. Please create some cards in the admin panel.</p>
+              </div>
+            ) : (
+              gameCards.map((card) => (
+                <div key={card._id} style={{ ...styles.specialBundleCard, border: `3px solid ${card.color}`, minHeight: 200 }}>
+                  <h3 style={styles.bundleName}>{card.name}</h3>
+                  <div style={{ ...styles.priceTag, color: card.color, borderColor: card.color, background: `${card.color}20` }}>
+                    {card.description}
                   </div>
+                  <button 
+                    style={{ 
+                      backgroundColor: card.color, 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '25px', 
+                      padding: '12px 30px', 
+                      fontSize: '1rem', 
+                      fontWeight: 'bold', 
+                      cursor: 'pointer', 
+                      marginTop: '15px',
+                      boxShadow: `0 4px 15px ${card.color}50`,
+                      transition: 'all 0.3s ease',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px'
+                    }}
+                    onClick={() => handlePlayGame(card)}
+                  >
+                    ▶ Play
+                  </button>
                 </div>
-              </section>
-            ));
-          })}
-        </>
-      )}
+              ))
+            )}
+          </div>
+        </div>
+      </section>
       {error && <div className="error" style={styles.error}>{error}</div>}
       {success && <div className="success" style={styles.success}>{success}</div>}
       
@@ -829,8 +331,8 @@ function BuyPage() {
   return (
     <div className="App" style={styles.container}>
       <header className="header" style={styles.header}>
-        <h1 className="title" style={styles.title}>Монгол Дуу Татагч</h1>
-        <p className="subtitle" style={styles.subtitle}>Mongolian Music Downloader</p>
+        <h1 className="title" style={styles.title}>Хий эсвэл УУ !!!</h1>
+        <p className="subtitle" style={styles.subtitle}>The Ultimate Party Game</p>
         <nav className="nav" style={styles.nav}>
           <button className="homeHeaderButton" style={styles.homeHeaderButton} onClick={() => navigate('/')}>Home</button>
           <button className="buyHeaderButton" style={styles.buyHeaderButton} onClick={() => navigate('/buy')}>Худалдаж авах</button>
