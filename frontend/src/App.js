@@ -4,6 +4,9 @@ import BundleCard from './BundleCard';
 import AdminPanel from './AdminPanel';
 import Login from './Login';
 import UserLogin from './UserLogin';
+import GamePage from './GamePage';
+import ReadChooseGame from './ReadChooseGame';
+import ChooseCompleteGame from './ChooseCompleteGame';
 import config from './config';
 import './App.css';
 
@@ -50,9 +53,8 @@ function HomePage() {
       setShowLoginModal(true);
       return;
     }
-    // TODO: Implement game logic
-    console.log('Playing game with card:', card);
-    setSuccess(`Starting ${card.name} game!`);
+    // Navigate to the game page
+    navigate(`/game/${card.difficulty}`);
   };
 
 
@@ -468,6 +470,9 @@ function App() {
         <Route path="/user-login" element={<UserLogin />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/buy" element={<BuyPage />} />
+        <Route path="/game/:difficulty" element={<GamePage />} />
+        <Route path="/game/:difficulty/read-choose" element={<ReadChooseGame />} />
+        <Route path="/game/:difficulty/choose-complete" element={<ChooseCompleteGame />} />
       </Routes>
     </Router>
   );
