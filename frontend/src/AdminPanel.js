@@ -17,12 +17,14 @@ const AdminPanel = () => {
     color: '#4CAF50',
     challenges: ['']
   });
+  const [challengeFile, setChallengeFile] = useState(null);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
   // 1. Add state for editing
   const [showEditModal, setShowEditModal] = useState(false);
   const [editGameCard, setEditGameCard] = useState(null);
+  const [editChallengeFile, setEditChallengeFile] = useState(null);
 
   // 1. Add state for users
   const [users, setUsers] = useState([]);
@@ -217,6 +219,7 @@ const AdminPanel = () => {
       color: '#4CAF50',
       challenges: ['']
     });
+    setChallengeFile(null);
     setShowCreateModal(true);
   };
 
@@ -229,6 +232,7 @@ const AdminPanel = () => {
       color: '#4CAF50',
       challenges: ['']
     });
+    setChallengeFile(null);
   };
 
   const addChallengeField = () => {
@@ -257,6 +261,34 @@ const AdminPanel = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleChallengeFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      // Split by lines and filter out empty lines
+      const challenges = text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      
+      if (challenges.length > 0) {
+        setNewGameCard(prev => ({
+          ...prev,
+          challenges: challenges
+        }));
+        setChallengeFile(file);
+        showMessage(`Loaded ${challenges.length} challenges from file (replaced existing challenges)`, 'success');
+      } else {
+        showMessage('No valid challenges found in file', 'error');
+      }
+    } catch (error) {
+      console.error('Error reading file:', error);
+      showMessage('Error reading file', 'error');
+    }
   };
 
   const createGameCard = async () => {
@@ -332,6 +364,7 @@ const AdminPanel = () => {
   const closeEditModal = () => {
     setShowEditModal(false);
     setEditGameCard(null);
+    setEditChallengeFile(null);
   };
 
   // 4. Update edit game card fields
@@ -349,6 +382,34 @@ const AdminPanel = () => {
   };
   const removeEditChallengeField = (index) => {
     setEditGameCard(prev => ({ ...prev, challenges: prev.challenges.filter((_, i) => i !== index) }));
+  };
+
+  const handleEditChallengeFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      // Split by lines and filter out empty lines
+      const challenges = text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      
+      if (challenges.length > 0) {
+        setEditGameCard(prev => ({
+          ...prev,
+          challenges: challenges
+        }));
+        setEditChallengeFile(file);
+        showMessage(`Loaded ${challenges.length} challenges from file (replaced existing challenges)`, 'success');
+      } else {
+        showMessage('No valid challenges found in file', 'error');
+      }
+    } catch (error) {
+      console.error('Error reading file:', error);
+      showMessage('Error reading file', 'error');
+    }
   };
 
   // 5. Save edited game card
@@ -1261,6 +1322,35 @@ const AdminPanel = () => {
 
               <div style={styles.formGroup}>
                 <label style={styles.label}>Challenges *</label>
+                
+                {/* File Upload Section */}
+                <div style={{ marginBottom: '15px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px dashed #dee2e6' }}>
+                  <label style={{ ...styles.label, marginBottom: '10px', display: 'block' }}>
+                    📁 Upload Challenges from Text File
+                  </label>
+                  <input
+                    type="file"
+                    accept=".txt"
+                    onChange={handleChallengeFileUpload}
+                    style={{ ...styles.input, marginBottom: '10px' }}
+                  />
+                  {challengeFile && (
+                    <div style={{ fontSize: '0.9rem', color: '#28a745', marginTop: '5px' }}>
+                      ✅ File loaded: {challengeFile.name} ({newGameCard.challenges.length} challenges)
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '5px' }}>
+                    💡 Tip: Create a .txt file with one challenge per line
+                  </div>
+                </div>
+
+                {/* Manual Challenge Input */}
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ ...styles.label, marginBottom: '10px', display: 'block' }}>
+                    ✏️ Or Add Challenges Manually
+                  </label>
+                </div>
+                
                 {newGameCard.challenges.map((challenge, index) => (
                   <div key={index} style={styles.linkRow}>
                     <input
@@ -1364,6 +1454,35 @@ const AdminPanel = () => {
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Challenges *</label>
+                
+                {/* File Upload Section */}
+                <div style={{ marginBottom: '15px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px dashed #dee2e6' }}>
+                  <label style={{ ...styles.label, marginBottom: '10px', display: 'block' }}>
+                    📁 Upload Challenges from Text File
+                  </label>
+                  <input
+                    type="file"
+                    accept=".txt"
+                    onChange={handleEditChallengeFileUpload}
+                    style={{ ...styles.input, marginBottom: '10px' }}
+                  />
+                  {editChallengeFile && (
+                    <div style={{ fontSize: '0.9rem', color: '#28a745', marginTop: '5px' }}>
+                      ✅ File loaded: {editChallengeFile.name} ({editGameCard.challenges.length} challenges)
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '5px' }}>
+                    💡 Tip: Create a .txt file with one challenge per line
+                  </div>
+                </div>
+
+                {/* Manual Challenge Input */}
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ ...styles.label, marginBottom: '10px', display: 'block' }}>
+                    ✏️ Or Add Challenges Manually
+                  </label>
+                </div>
+                
                 {editGameCard.challenges.map((challenge, index) => (
                   <div key={index} style={styles.linkRow}>
                     <input
