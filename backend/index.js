@@ -35,10 +35,13 @@ const corsOptions = {
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  'https://mg-lduu.vercel.app'
+  'https://mg-lduu.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002'
 ];
 app.use(cors({
-  origin: allowedOrigins,
+  origin: true, // Allow all origins temporarily for testing
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));

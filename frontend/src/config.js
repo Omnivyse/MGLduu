@@ -1,7 +1,7 @@
 // Configuration for different environments
 const config = {
   development: {
-    API_BASE_URL: 'http://localhost:4000',
+    API_BASE_URL: 'https://mglduu-production.up.railway.app',
   },
   production: {
     API_BASE_URL: process.env.REACT_APP_BACKEND_URL,
