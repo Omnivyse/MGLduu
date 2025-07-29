@@ -3,26 +3,26 @@ import { Link, useNavigate } from 'react-router-dom';
 import config from './config';
 
 const AdminPanel = () => {
-  const [bundles, setBundles] = useState([]);
+  const [gameCards, setGameCards] = useState([]);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
   const [stats, setStats] = useState({});
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newBundle, setNewBundle] = useState({
+  const [newGameCard, setNewGameCard] = useState({
     name: '',
-    imageBase64: '',
-    links: [{ name: '', url: '' }],
-    piece: 1,
-    category: ''
+    difficulty: '',
+    description: '',
+    color: '#4CAF50',
+    challenges: ['']
   });
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
   // 1. Add state for editing
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editBundle, setEditBundle] = useState(null);
+  const [editGameCard, setEditGameCard] = useState(null);
 
   // 1. Add state for users
   const [users, setUsers] = useState([]);
@@ -55,7 +55,7 @@ const AdminPanel = () => {
     try {
       const user = JSON.parse(userData);
       setUser(user);
-      fetchBundles();
+      fetchGameCards();
       fetchStats();
       fetchUsers(); // <-- add this
       fetchPackages(); // <-- add this
@@ -68,24 +68,24 @@ const AdminPanel = () => {
     }
   }, [navigate]);
 
-  const fetchBundles = async () => {
+  const fetchGameCards = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle/all`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/game-cards`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setBundles(data);
+        setGameCards(data);
       } else if (response.status === 401) {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
         navigate('/login');
       }
     } catch (error) {
-      console.error('Error fetching bundles:', error);
+      console.error('Error fetching game cards:', error);
     }
   };
 
@@ -181,12 +181,12 @@ const AdminPanel = () => {
     navigate('/login');
   };
 
-  const deleteBundle = async (bundleId) => {
-    if (!window.confirm('Are you sure you want to delete this bundle?')) return;
+  const deleteGameCard = async (cardId) => {
+    if (!window.confirm('Are you sure you want to delete this game card?')) return;
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle/${bundleId}`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/game-cards/${cardId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -194,104 +194,116 @@ const AdminPanel = () => {
       });
 
       if (response.ok) {
-        showMessage('Bundle deleted successfully', 'success');
-        fetchBundles();
+        showMessage('Game card deleted successfully', 'success');
+        fetchGameCards();
         fetchStats();
       } else if (response.status === 401) {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
         navigate('/login');
       } else {
-        showMessage('Failed to delete bundle', 'error');
+        showMessage('Failed to delete game card', 'error');
       }
     } catch (error) {
-      showMessage('Error deleting bundle', 'error');
+      showMessage('Error deleting game card', 'error');
     }
   };
 
   const openCreateModal = () => {
-    setNewBundle({
+    setNewGameCard({
       name: '',
-      imageBase64: '',
-      links: [{ name: '', url: '' }],
-      piece: 0
+      difficulty: '',
+      description: '',
+      color: '#4CAF50',
+      challenges: ['']
     });
     setShowCreateModal(true);
   };
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
-    setNewBundle({
+    setNewGameCard({
       name: '',
-      imageBase64: '',
-      links: [{ name: '', url: '' }],
-      piece: 0
+      difficulty: '',
+      description: '',
+      color: '#4CAF50',
+      challenges: ['']
     });
   };
 
-  const addLinkField = () => {
-    setNewBundle(prev => ({
+  const addChallengeField = () => {
+    setNewGameCard(prev => ({
       ...prev,
-      links: [...prev.links, { name: '', url: '' }]
+      challenges: [...prev.challenges, '']
     }));
   };
 
-  const removeLinkField = (index) => {
-    setNewBundle(prev => ({
+  const removeChallengeField = (index) => {
+    setNewGameCard(prev => ({
       ...prev,
-      links: prev.links.filter((_, i) => i !== index)
+      challenges: prev.challenges.filter((_, i) => i !== index)
     }));
   };
 
-  const updateLink = (index, field, value) => {
-    setNewBundle(prev => ({
+  const updateChallenge = (index, value) => {
+    setNewGameCard(prev => ({
       ...prev,
-      links: prev.links.map((link, i) => i === index ? { ...link, [field]: value } : link)
+      challenges: prev.challenges.map((challenge, i) => i === index ? value : challenge)
     }));
   };
 
-  const updateNewBundle = (field, value) => {
-    setNewBundle(prev => ({
+  const updateNewGameCard = (field, value) => {
+    setNewGameCard(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const createBundle = async () => {
-    if (!newBundle.name.trim()) {
-      showMessage('Bundle name is required', 'error');
+  const createGameCard = async () => {
+    if (!newGameCard.name.trim()) {
+      showMessage('Game card name is required', 'error');
       return;
     }
 
-    if (newBundle.links.length === 0 || newBundle.links.every(link => !link.name.trim() || !link.url.trim())) {
-      showMessage('At least one link with name and URL is required', 'error');
+    if (!newGameCard.difficulty) {
+      showMessage('Difficulty level is required', 'error');
+      return;
+    }
+
+    if (!newGameCard.description.trim()) {
+      showMessage('Description is required', 'error');
+      return;
+    }
+
+    if (newGameCard.challenges.length === 0 || newGameCard.challenges.every(challenge => !challenge.trim())) {
+      showMessage('At least one challenge is required', 'error');
       return;
     }
 
     setCreating(true);
     try {
       const token = localStorage.getItem('adminToken');
-      const bundleData = {
-        name: newBundle.name.trim(),
-        imageBase64: newBundle.imageBase64,
-        links: newBundle.links.filter(link => link.name.trim() && link.url.trim()),
-        piece: parseInt(newBundle.piece) || 0,
-        category: newBundle.category
+      const gameCardData = {
+        name: newGameCard.name.trim(),
+        difficulty: newGameCard.difficulty,
+        description: newGameCard.description.trim(),
+        color: newGameCard.color,
+        challenges: newGameCard.challenges.filter(challenge => challenge.trim())
       };
 
-      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/game-cards`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(bundleData),
+        body: JSON.stringify(gameCardData),
       });
 
       if (response.ok) {
-        showMessage('Bundle created successfully', 'success');
+        showMessage('Game card created successfully', 'success');
         closeCreateModal();
-        fetchBundles();
+        fetchGameCards();
         fetchStats();
       } else if (response.status === 401) {
         localStorage.removeItem('adminToken');
@@ -299,97 +311,85 @@ const AdminPanel = () => {
         navigate('/login');
       } else {
         const errorData = await response.json();
-        showMessage(errorData.error || 'Failed to create bundle', 'error');
+        showMessage(errorData.error || 'Failed to create game card', 'error');
       }
     } catch (error) {
-      showMessage('Error creating bundle', 'error');
+      showMessage('Error creating game card', 'error');
     } finally {
       setCreating(false);
     }
   };
 
-  // For create modal
-  const handleCreateImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewBundle(prev => ({ ...prev, imageBase64: reader.result }));
-    };
-    reader.readAsDataURL(file);
-  };
 
-  // For edit modal
-  const handleEditImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setEditBundle(prev => ({ ...prev, imageBase64: reader.result }));
-    };
-    reader.readAsDataURL(file);
-  };
 
   // 2. Open edit modal
-  const openEditModal = (bundle) => {
-    setEditBundle({ ...bundle, links: [...bundle.links] });
+  const openEditModal = (gameCard) => {
+    setEditGameCard({ ...gameCard, challenges: [...gameCard.challenges] });
     setShowEditModal(true);
   };
 
   // 3. Close edit modal
   const closeEditModal = () => {
     setShowEditModal(false);
-    setEditBundle(null);
+    setEditGameCard(null);
   };
 
-  // 4. Update edit bundle fields
-  const updateEditBundle = (field, value) => {
-    setEditBundle(prev => ({ ...prev, [field]: value }));
+  // 4. Update edit game card fields
+  const updateEditGameCard = (field, value) => {
+    setEditGameCard(prev => ({ ...prev, [field]: value }));
   };
-  const updateEditLink = (index, field, value) => {
-    setEditBundle(prev => ({
+  const updateEditChallenge = (index, value) => {
+    setEditGameCard(prev => ({
       ...prev,
-      links: prev.links.map((link, i) => i === index ? { ...link, [field]: value } : link)
+      challenges: prev.challenges.map((challenge, i) => i === index ? value : challenge)
     }));
   };
-  const addEditLinkField = () => {
-    setEditBundle(prev => ({ ...prev, links: [...prev.links, { name: '', url: '' }] }));
+  const addEditChallengeField = () => {
+    setEditGameCard(prev => ({ ...prev, challenges: [...prev.challenges, ''] }));
   };
-  const removeEditLinkField = (index) => {
-    setEditBundle(prev => ({ ...prev, links: prev.links.filter((_, i) => i !== index) }));
+  const removeEditChallengeField = (index) => {
+    setEditGameCard(prev => ({ ...prev, challenges: prev.challenges.filter((_, i) => i !== index) }));
   };
 
-  // 5. Save edited bundle
-  const saveEditBundle = async () => {
-    if (!editBundle.name.trim()) {
-      showMessage('Bundle name is required', 'error');
+  // 5. Save edited game card
+  const saveEditGameCard = async () => {
+    if (!editGameCard.name.trim()) {
+      showMessage('Game card name is required', 'error');
       return;
     }
-    if (editBundle.links.length === 0 || editBundle.links.every(link => !link.name.trim() || !link.url.trim())) {
-      showMessage('At least one link with name and URL is required', 'error');
+    if (!editGameCard.difficulty) {
+      showMessage('Difficulty level is required', 'error');
+      return;
+    }
+    if (!editGameCard.description.trim()) {
+      showMessage('Description is required', 'error');
+      return;
+    }
+    if (editGameCard.challenges.length === 0 || editGameCard.challenges.every(challenge => !challenge.trim())) {
+      showMessage('At least one challenge is required', 'error');
       return;
     }
     try {
       const token = localStorage.getItem('adminToken');
-      const bundleData = {
-        name: editBundle.name.trim(),
-        imageBase64: editBundle.imageBase64,
-        links: editBundle.links.filter(link => link.name.trim() && link.url.trim()),
-        piece: parseInt(editBundle.piece) || 0,
-        category: editBundle.category
+      const gameCardData = {
+        name: editGameCard.name.trim(),
+        difficulty: editGameCard.difficulty,
+        description: editGameCard.description.trim(),
+        color: editGameCard.color,
+        challenges: editGameCard.challenges.filter(challenge => challenge.trim())
       };
-      const response = await fetch(`${config.API_BASE_URL}/api/song-bundle/${editBundle._id}`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/game-cards/${editGameCard._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(bundleData)
+        body: JSON.stringify(gameCardData)
       });
       if (response.ok) {
-        showMessage('Bundle updated successfully', 'success');
+        showMessage('Game card updated successfully', 'success');
         closeEditModal();
-        fetchBundles();
+        fetchGameCards();
         fetchStats();
       } else if (response.status === 401) {
         localStorage.removeItem('adminToken');
@@ -397,10 +397,10 @@ const AdminPanel = () => {
         navigate('/login');
       } else {
         const errorData = await response.json();
-        showMessage(errorData.error || 'Failed to update bundle', 'error');
+        showMessage(errorData.error || 'Failed to update game card', 'error');
       }
     } catch (error) {
-      showMessage('Error updating bundle', 'error');
+      showMessage('Error updating game card', 'error');
     }
   };
 
@@ -1041,31 +1041,33 @@ const AdminPanel = () => {
   );
 
 
-  const renderBundles = () => (
+  const renderGameCards = () => (
     <div style={styles.bundlesSection}>
       <div style={styles.bundlesHeader}>
-        <h2>Manage Bundles</h2>
+        <h2>Manage Game Cards</h2>
         <button onClick={openCreateModal} style={styles.createButton}>
-          Create New Bundle
+          Create New Game Card
         </button>
       </div>
       <div style={styles.bundlesList}>
-        {bundles.map((bundle) => (
-          <div key={bundle._id} style={styles.bundleCard}>
+        {gameCards.map((card) => (
+          <div key={card._id} style={styles.bundleCard}>
             <div style={styles.bundleInfo}>
-              <h3>{bundle.name}</h3>
-              <p>Songs: {bundle.links ? bundle.links.length : 0}</p>
-              <p>Created: {new Date(bundle.createdAt).toLocaleDateString()}</p>
+              <h3>{card.name}</h3>
+              <p>Difficulty: {card.difficulty}</p>
+              <p>Description: {card.description}</p>
+              <p>Challenges: {card.challenges ? card.challenges.length : 0}</p>
+              <p>Created: {new Date(card.createdAt).toLocaleDateString()}</p>
             </div>
             <div style={styles.bundleActions}>
               <button
-                onClick={() => openEditModal(bundle)}
+                onClick={() => openEditModal(card)}
                 style={{ ...styles.editButton, marginRight: 10 }}
               >
                 Edit
               </button>
               <button
-                onClick={() => deleteBundle(bundle._id)}
+                onClick={() => deleteGameCard(card._id)}
                 style={styles.deleteButton}
               >
                 Delete
@@ -1073,8 +1075,8 @@ const AdminPanel = () => {
             </div>
           </div>
         ))}
-        {bundles.length === 0 && (
-          <p style={styles.noBundles}>No bundles found</p>
+        {gameCards.length === 0 && (
+          <p style={styles.noBundles}>No game cards found</p>
         )}
       </div>
     </div>
@@ -1167,7 +1169,7 @@ const AdminPanel = () => {
               ...(activeTab === 'bundles' && styles.activeNavButton)
             }}
           >
-            Manage Bundles
+            Manage Game Cards
           </button>
           <button
             className="adminTab"
@@ -1191,16 +1193,16 @@ const AdminPanel = () => {
 
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'orders' && renderOrders()}
-        {activeTab === 'bundles' && renderBundles()}
+        {activeTab === 'bundles' && renderGameCards()}
         {activeTab === 'prices' && renderPrices()}
       </main>
 
-      {/* Create Bundle Modal */}
+      {/* Create Game Card Modal */}
       {showCreateModal && (
         <div className="modalOverlay" style={styles.modalOverlay}>
           <div className="modalContent" style={styles.modal}>
             <div style={styles.modalHeader}>
-              <h2>Create New Bundle</h2>
+              <h2>Create New Game Card</h2>
               <button className="closeButton" onClick={closeCreateModal} style={styles.closeButton}>
                 ×
               </button>
@@ -1208,91 +1210,77 @@ const AdminPanel = () => {
             
             <div style={styles.modalBody}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Bundle Name *</label>
+                <label style={styles.label}>Card Name *</label>
                 <input
                   type="text"
-                  value={newBundle.name}
-                  onChange={(e) => updateNewBundle('name', e.target.value)}
+                  value={newGameCard.name}
+                  onChange={(e) => updateNewGameCard('name', e.target.value)}
                   style={styles.input}
-                  placeholder="Enter bundle name"
+                  placeholder="Enter card name"
                 />
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Image *</label>
+                <label style={styles.label}>Difficulty Level *</label>
+                <select
+                  value={newGameCard.difficulty}
+                  onChange={(e) => updateNewGameCard('difficulty', e.target.value)}
+                  style={styles.input}
+                >
+                  <option value="">Select Difficulty</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                  <option value="extreme">Extreme</option>
+                  <option value="xxx">XXX</option>
+                  <option value="killer">Killer</option>
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Description *</label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleCreateImageUpload}
+                  type="text"
+                  value={newGameCard.description}
+                  onChange={(e) => updateNewGameCard('description', e.target.value)}
+                  style={styles.input}
+                  placeholder="Enter description"
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Color</label>
+                <input
+                  type="color"
+                  value={newGameCard.color}
+                  onChange={(e) => updateNewGameCard('color', e.target.value)}
                   style={styles.input}
                 />
-                {newBundle.imageBase64 && (
-                  <img src={newBundle.imageBase64} alt="Preview" style={{ maxWidth: 120, marginTop: 10 }} />
-                )}
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Song Piece Number</label>
-                <select
-                  value={newBundle.piece}
-                  onChange={(e) => updateNewBundle('piece', e.target.value)}
-                  style={styles.input}
-                >
-                  <option value="1">1</option>
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                  <option value="15">15</option>
-                  <option value="20">20</option>
-                  <option value="25">25</option>
-                  <option value="30">30</option>
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Category</label>
-                <select
-                  value={newBundle.category}
-                  onChange={(e) => updateNewBundle('category', e.target.value)}
-                  style={styles.input}
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>YouTube Links *</label>
-                {newBundle.links.map((link, index) => (
+                <label style={styles.label}>Challenges *</label>
+                {newGameCard.challenges.map((challenge, index) => (
                   <div key={index} style={styles.linkRow}>
                     <input
                       type="text"
-                      value={link.name}
-                      onChange={e => updateLink(index, 'name', e.target.value)}
+                      value={challenge}
+                      onChange={e => updateChallenge(index, e.target.value)}
                       style={styles.linkInput}
-                      placeholder="Song name"
+                      placeholder="Enter challenge text"
                     />
-                    <input
-                      type="url"
-                      value={link.url}
-                      onChange={e => updateLink(index, 'url', e.target.value)}
-                      style={styles.linkInput}
-                      placeholder="https://youtu.be/..."
-                    />
-                    {newBundle.links.length > 1 && (
-                      <button type="button" onClick={() => removeLinkField(index)} style={styles.removeButton}>Remove</button>
+                    {newGameCard.challenges.length > 1 && (
+                      <button type="button" onClick={() => removeChallengeField(index)} style={styles.removeButton}>Remove</button>
                     )}
                   </div>
                 ))}
                 <button
                   type="button"
-                  onClick={addLinkField}
+                  onClick={addChallengeField}
                   style={styles.addButton}
                 >
-                  + Add Another Link
+                  + Add Another Challenge
                 </button>
               </div>
             </div>
@@ -1306,116 +1294,100 @@ const AdminPanel = () => {
                 Cancel
               </button>
               <button
-                onClick={createBundle}
+                onClick={createGameCard}
                 style={styles.saveButton}
                 disabled={creating}
               >
-                {creating ? 'Creating...' : 'Create Bundle'}
+                {creating ? 'Creating...' : 'Create Game Card'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Bundle Modal */}
-      {showEditModal && editBundle && (
+      {/* Edit Game Card Modal */}
+      {showEditModal && editGameCard && (
         <div className="modalOverlay" style={styles.modalOverlay}>
           <div className="modalContent" style={styles.modal}>
             <div style={styles.modalHeader}>
-              <h2>Edit Bundle</h2>
+              <h2>Edit Game Card</h2>
               <button className="closeButton" onClick={closeEditModal} style={styles.closeButton}>
                 ×
               </button>
             </div>
             <div style={styles.modalBody}>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Bundle Name *</label>
+                <label style={styles.label}>Card Name *</label>
                 <input
                   type="text"
-                  value={editBundle.name}
-                  onChange={e => updateEditBundle('name', e.target.value)}
+                  value={editGameCard.name}
+                  onChange={e => updateEditGameCard('name', e.target.value)}
                   style={styles.input}
-                  placeholder="Enter bundle name"
+                  placeholder="Enter card name"
                 />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Image *</label>
+                <label style={styles.label}>Difficulty Level *</label>
+                <select
+                  value={editGameCard.difficulty}
+                  onChange={e => updateEditGameCard('difficulty', e.target.value)}
+                  style={styles.input}
+                >
+                  <option value="">Select Difficulty</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                  <option value="extreme">Extreme</option>
+                  <option value="xxx">XXX</option>
+                  <option value="killer">Killer</option>
+                </select>
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Description *</label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleEditImageUpload}
+                  type="text"
+                  value={editGameCard.description}
+                  onChange={e => updateEditGameCard('description', e.target.value)}
+                  style={styles.input}
+                  placeholder="Enter description"
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Color</label>
+                <input
+                  type="color"
+                  value={editGameCard.color}
+                  onChange={e => updateEditGameCard('color', e.target.value)}
                   style={styles.input}
                 />
-                {editBundle.imageBase64 && (
-                  <img src={editBundle.imageBase64} alt="Preview" style={{ maxWidth: 120, marginTop: 10 }} />
-                )}
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Song Piece Number</label>
-                <select
-                  value={editBundle.piece}
-                  onChange={e => updateEditBundle('piece', e.target.value)}
-                  style={styles.input}
-                >
-                  <option value="1">1</option>
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                  <option value="15">15</option>
-                  <option value="20">20</option>
-                  <option value="25">25</option>
-                  <option value="30">30</option>
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Category</label>
-                <select
-                  value={editBundle.category || ''}
-                  onChange={e => updateEditBundle('category', e.target.value)}
-                  style={styles.input}
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>YouTube Links *</label>
-                {editBundle.links.map((link, index) => (
+                <label style={styles.label}>Challenges *</label>
+                {editGameCard.challenges.map((challenge, index) => (
                   <div key={index} style={styles.linkRow}>
                     <input
                       type="text"
-                      value={link.name}
-                      onChange={e => updateEditLink(index, 'name', e.target.value)}
+                      value={challenge}
+                      onChange={e => updateEditChallenge(index, e.target.value)}
                       style={styles.linkInput}
-                      placeholder="Song name"
+                      placeholder="Enter challenge text"
                     />
-                    <input
-                      type="url"
-                      value={link.url}
-                      onChange={e => updateEditLink(index, 'url', e.target.value)}
-                      style={styles.linkInput}
-                      placeholder="https://youtu.be/..."
-                    />
-                    {editBundle.links.length > 1 && (
-                      <button type="button" onClick={() => removeEditLinkField(index)} style={styles.removeButton}>Remove</button>
+                    {editGameCard.challenges.length > 1 && (
+                      <button type="button" onClick={() => removeEditChallengeField(index)} style={styles.removeButton}>Remove</button>
                     )}
                   </div>
                 ))}
                 <button
                   type="button"
-                  onClick={addEditLinkField}
+                  onClick={addEditChallengeField}
                   style={styles.addButton}
                 >
-                  Add Link
+                  Add Challenge
                 </button>
               </div>
               <button
-                onClick={saveEditBundle}
+                onClick={saveEditGameCard}
                 style={styles.saveButton}
               >
                 Save Changes
@@ -1729,6 +1701,6 @@ const styles = {
     fontSize: '1rem',
     transition: 'background 0.2s',
 },
-  };
-  
-  export default AdminPanel; 
+      };
+    
+    export default AdminPanel; 
